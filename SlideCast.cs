@@ -19,7 +19,7 @@ namespace SlideCast
         public string Name => "Slide Cast";
         [PluginService] public DalamudPluginInterface PluginInterface { get; private set; }
         [PluginService] public ClientState State { get; private set; }
-        private CommandManager commandManager { get; init; }
+        [PluginService] private CommandManager commandManager { get; init; }
         [PluginService] public static SigScanner SigScanner { get; private set; }
         private Config _configuration;
         private bool _enabled;
@@ -49,7 +49,7 @@ namespace SlideCast
         private Colour _colS = new Colour(0.04f, 0.8f, 1f, 1f);
         private readonly Colour _col1S = new Colour(0.04f, 0.4f, 1f, 1f);
 
-        public SlideCast(CommandManager commandManager)
+        public SlideCast(CommandManager command)
         {
             _configuration = PluginInterface.GetPluginConfig() as Config ?? new Config();
             _scan1 = SigScanner.ScanText("E8 ?? ?? ?? ?? 41 b8 01 00 00 00 48 8d 15 ?? ?? ?? ?? 48 8b 48 20 e8 ?? ?? ?? ?? 48 8b cf");
@@ -59,6 +59,8 @@ namespace SlideCast
             _castBar = _getUi2ObjByName(Marshal.ReadIntPtr(_getBaseUiObj(), 0x20), "_CastBar", 1) != IntPtr.Zero ? _getUi2ObjByName(Marshal.ReadIntPtr(_getBaseUiObj(), 0x20), "_CastBar", 1) : IntPtr.Zero;
             PluginInterface.UiBuilder.Draw += DrawWindow;
             PluginInterface.UiBuilder.OpenConfigUi += ConfigWindow;
+            
+            commandManager = command;
             commandManager.AddHandler("/slc", new CommandInfo(Command)
             {
                 HelpMessage = "Open SlideCast config menu"
@@ -68,8 +70,8 @@ namespace SlideCast
              _slideTime = _configuration.SlideTime;
              _slideCol = _configuration.SlideCol;
 
-             State.Logout += (s, e) => _enabled = false;
-             State.Login += (s, e) => _enabled = _configuration.Enabled;
+            State.Logout += (s, e) => _enabled = false;
+            State.Login  += (s, e) => _enabled = _configuration.Enabled;
         }
 
         private void Command(string command, string arguments)
@@ -79,6 +81,9 @@ namespace SlideCast
 
         public void Dispose()
         {
+            // State.Logout += (s, e) => _enabled = false;
+            // State.Login += (s, e) => _enabled = _configuration.Enabled;
+
             PluginInterface.UiBuilder.Draw -= DrawWindow;
             PluginInterface.UiBuilder.OpenConfigUi -= ConfigWindow;
             commandManager.RemoveHandler("/slc");
